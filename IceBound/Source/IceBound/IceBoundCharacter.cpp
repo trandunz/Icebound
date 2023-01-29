@@ -5,7 +5,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "UI/Widget_PlayerHUD.h"
 #include "EnhancedInputComponent.h"
+#include "IceBound/Entitys/EntityComponent.h"
 #include "EnhancedInputSubsystems.h"
 
 AIceBoundCharacter::AIceBoundCharacter()
@@ -33,6 +36,18 @@ AIceBoundCharacter::AIceBoundCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	EntityComponent = CreateDefaultSubobject<UEntityComponent>(TEXT("Entity Component"));
+}
+
+void AIceBoundCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (PlayerHUD && EntityComponent)
+	{
+		PlayerHUD->UpdateHealthBar(EntityComponent->CurrentHealth, EntityComponent->MaxHealth);
+	}
 }
 
 void AIceBoundCharacter::BeginPlay()
@@ -45,6 +60,25 @@ void AIceBoundCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
+	}
+
+	if(IsLocallyControlled() && PlayerHUD_Class)
+	{
+		if (APlayerController* controller = GetController<APlayerController>())
+		{
+			PlayerHUD = CreateWidget<UWidget_PlayerHUD>(controller, PlayerHUD_Class);
+			PlayerHUD->AddToPlayerScreen();
+		}
+	}
+
+}
+
+void AIceBoundCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (PlayerHUD)
+	{
+		PlayerHUD->RemoveFromParent();
+		PlayerHUD = __nullptr;
 	}
 }
 
